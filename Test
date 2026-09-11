@@ -1,0 +1,31 @@
+fsdfds
+
+
+sdsd ## probate-back-office
+
+### Implementation changes
+
+#### Mandatory
+
+- `src/main/java/uk/gov/hmcts/probate/transformer/CaveatCallbackResponseTransformer.java:231-233` (`changeSubmissionDate`): Delete the delegate-only method and use the established `transformResponseWithNoChanges` method directly.
+- `src/main/java/uk/gov/hmcts/probate/controller/CaveatController.java:307-316` (`changeSubmissionDate`): Replace the call to the deleted transformer wrapper with `transformResponseWithNoChanges` after recalculating expiry and setting payment taken.
+- `src/main/java/uk/gov/hmcts/probate/service/payments/PaymentsService.java:108-116` (`isPaymentSuccessByCaseId`): Rename the method and its local result to `hasSuccessfulPaymentByCaseId` / `hasSuccessfulPayment` so its contract is limited to finding a payment record whose status is `success`. [PR #4140](https://github.com/hmcts/probate-back-office/pull/4140)
+- `src/main/java/uk/gov/hmcts/probate/service/FetchDraftCaseService.java:84-91` (`processCases`): Update the caller to use `hasSuccessfulPaymentByCaseId` so the payment-service rename compiles without changing draft-processing behaviour.
+- `src/main/java/uk/gov/hmcts/probate/validator/CaveatChangeSubmissionDateValidationRule.java:34-40` (`validate`): Inject the existing application `Clock` and use `LocalDate.now(clock)` for future-date and date-of-death validation.
+- `src/main/java/uk/gov/hmcts/probate/validator/CaveatChangeSubmissionDateValidationRule.java:64-68` (`validate`): Rename the payment result to `hasSuccessfulPayment` and express the rejection condition as `!(hasSuccessfulPayment || isPaymentTaken)` so either a payments-platform success or the manual/legacy paid marker permits the correction.
+
+### Testing changes
+
+#### Mandatory
+
+- `src/test/java/uk/gov/hmcts/probate/validator/CaveatChangeSubmissionDateValidationRuleTest.java:25-155` (`CaveatChangeSubmissionDateValidationRuleTest`): Construct the validator with a fixed UTC `Clock`, replace dynamic `LocalDate.now()` values with the fixed date, and update payment-service stubs to `hasSuccessfulPaymentByCaseId`.
+- `src/test/java/uk/gov/hmcts/probate/controller/CaveatControllerUnitTest.java:241-285` (`change submission date tests`): Stub `transformResponseWithNoChanges` and the renamed payment predicate so the controller tests match the removed wrapper and renamed service contract.
+- `src/test/java/uk/gov/hmcts/probate/transformer/CaveatCallbackResponseTransformerTest.java:771-781` (`shouldChangeSubmissionDateWithNoAdditionalTransformations`): Delete this test with the delegate-only transformer method; `transformResponseWithNoChanges` already owns the retained behaviour.
+- `src/test/java/uk/gov/hmcts/probate/service/FetchDraftCaseServiceTest.java:77-196` (`FetchDraftCaseServiceTest`): Update every mocked payment-service call to `hasSuccessfulPaymentByCaseId`.
+- `src/integrationTest/java/uk/gov/hmcts/probate/controller/CaveatControllerIT.java:493-526` (`change submission date callbacks`): Add a validation-callback regression test where the payments lookup has no successful record and `paymentTaken` is `Yes`; assert the valid corrected date is accepted, protecting the manual/legacy payment path.
+
+### Commenting
+
+#### Mandatory
+
+- `src/main/java/uk/gov/hmcts/probate/validator/CaveatChangeSubmissionDateValidationRule.java:64-68` (`validate`): Retain or add one concise comment explaining that `paymentTaken = Yes` is accepted because manual/legacy confirmed payments may have no linked payments-platform record; without it, genuine paid caveat cases cannot be corrected.
