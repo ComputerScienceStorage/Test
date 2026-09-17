@@ -1,113 +1,11 @@
-## Probate Frontend
+## probate-back-office
 
 ### Implementation changes
 
 #### Mandatory
 
-- `app/steps/ui/executors/coapplicantname/index.js:45-58` (`CoApplicantName.nextStepOptions`): Remove `currentCoApplicantRelationship`, `nieceNephewExclusions` and the `!nieceNephewExclusions.includes(...)` condition; restore whole- and half-blood niece/nephew co-applicants to the existing `isChildJointApplication → CoApplicantAdoptedIn` route after their name is entered, while retaining `isParentJointApplication`.
+- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:32-35` (`ApplicantFamilyDetails` half-blood niece/nephew parent fields): Replace `relationshipToDeceased="NeverShowThisField"` with `relationshipToDeceased="halfBloodNieceOrNephew"` for the parent-death and parent-adopted-in fields; add `AND halfNieceOrNephewParentAdoptedIn="Yes"` to the adoption-location field and `AND halfNieceOrNephewParentAdoptedIn="No"` to the adopted-out field so Caseworker XUI displays only the applicable saved answers.
 
-- `app/steps/ui/summary/includes/intestacy-people-applying.njk:74-95` (`relationships` mapping): Restore the `optionWholeBloodNieceOrNephew` and `optionHalfBloodNieceOrNephew` entries with their matching `*NieceOrNephewAdoptedIn`, `*AdoptedOut` and `*AdoptionInEnglandOrWales` fields so Check Your Answers displays the co-applicant’s own adoption answers as well as the separately displayed parent answers.
+- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:43-46` (`ApplicantFamilyDetails` whole-blood niece/nephew parent fields): Replace `relationshipToDeceased="NeverShowThisField"` with `relationshipToDeceased="wholeBloodNieceOrNephew"` for the parent-death and parent-adopted-in fields; add `AND wholeNieceOrNephewParentAdoptedIn="Yes"` to the adoption-location field and `AND wholeNieceOrNephewParentAdoptedIn="No"` to the adopted-out field so Caseworker XUI displays only the applicable saved answers.
 
-- `app/wrappers/Executors.js:187-230` (`Executors.hasStopCondition`): Combine the niece/nephew parent eligibility stop conditions with the existing niece/nephew-own adoption stop conditions instead of returning immediately after checking only the parent fields; a disqualifying answer about either person must restore the stopped state.
-
-### Testing changes
-
-#### Mandatory
-
-- `test/component/executors/testCoApplicantName.js:66-89` (`coapplicant-name redirection tests`): Add one table-driven test covering whole- and half-blood niece/nephew co-applicants and proving that submitting “What is the other applicant’s name?” redirects to `/intestacy/coapplicant-adopted-in/1`.
-
-- `test/unit/wrappers/testExecutorsWrapper.js:1021-1058` (`hasStopCondition()`): Extend the existing whole-/half-blood scenario table so each relationship proves both a disqualifying parent answer and a disqualifying niece/nephew-own adoption answer return `true`.
-
-- `test/component/summary/testExecutorsSection.js:180-241` (`whole-/half-blood parent adoption summary tests`): Extend the existing table-driven test to populate and assert the matching niece/nephew-own adoption answer alongside the parent answer, proving Check Your Answers keeps the two subjects separate.
-
-### Commenting
-
-#### Mandatory
-
-- `app/steps/ui/executors/coapplicantname/index.js:45-58` (`CoApplicantName.nextStepOptions`): Add one concise comment explaining that eligible niece/nephew parent checks finish before the name page, after which the existing adoption route checks the niece/nephew personally.
-
-- `app/wrappers/Executors.js:187-230` (`Executors.hasStopCondition`): Replace the current parent-only comment with one explaining that niece/nephew eligibility depends on both their parent’s answers and their own adoption answers, and that either set can restore a stop condition.
-
-- `app/steps/ui/summary/includes/intestacy-people-applying.njk:74-95` (`relationships` mapping): Add one concise Nunjucks comment explaining that this map renders the co-applicant’s own adoption answers and is intentionally separate from the parent-answer block above it.
-
-## Context for another AI agent
-
-```text
-Task: Restore the whole-/half-blood niece/nephew’s own adoption journey after the parent-eligibility journey, without removing the parent-specific changes delivered by Probate Frontend PR #3589.
-
-Repository:
-https://github.com/hmcts/probate-frontend
-
-Target branch:
-DTSPB-4687_Digitising-Intestacy
-
-PR:
-https://github.com/hmcts/probate-frontend/pull/3589
-
-Merged PR commit:
-9fca1ccfa43628046faca28f50a0b07010ebddbd
-
-Commit originally identified as the earlier reference point:
-13ea1977e3434347597783ff8b4bd643d8e70e69
-
-Git-history warning:
-13ea1977 is not an ancestor of 9fca1ccf. The actual parent and merge-base for PR #3589 is 3a44f68b3fcca4aff011656420ab4ff0a6b491cc. Compare 3a44f68b → 9fca1ccf when identifying changes introduced by PR #3589. The relevant older behaviour is nevertheless present in both the actual PR parent and 13ea1977.
-
-Expected business journey:
-
-1. Select whole-blood or half-blood niece/nephew.
-2. Ask whether their parent died before the deceased.
-3. Ask whether their parent was adopted into the deceased’s family.
-4. Depending on that answer, ask the parent’s adoption location or whether the parent was adopted out.
-5. If the parent answers are eligible, ask “What is the other applicant’s name?”
-6. After the name, ask whether the niece/nephew personally was adopted into the deceased’s family.
-7. Depending on that answer, ask the niece/nephew’s adoption location or whether they were adopted out.
-8. Continue to email/address only when both the parent and the niece/nephew personally satisfy the eligibility rules.
-
-Confirmed regression 1:
-app/steps/ui/executors/coapplicantname/index.js introduced `nieceNephewExclusions`. This makes `isChildJointApplication` false for whole- and half-blood niece/nephew co-applicants. `app/journeys/intestacy.js` consequently selects the `otherwise → CoApplicantEmail` route, skipping the existing CoApplicantAdoptedIn, CoApplicantAdoptionPlace and CoApplicantAdoptedOut pages.
-
-Confirmed regression 2:
-app/steps/ui/summary/includes/intestacy-people-applying.njk removed the whole- and half-blood niece/nephew entries from its generic relationship/adoption map. The new parent answers are displayed, but the niece/nephew’s own adoption answers are no longer displayed on Check Your Answers.
-
-Confirmed regression 3:
-app/wrappers/Executors.js returns early for niece/nephew relationships after checking only the dedicated parent fields. It therefore bypasses the existing generic arrays containing the niece/nephew’s own adoption-location and adopted-out fields. A user stopped because of the niece/nephew’s personal adoption status may not be recognised as stopped when the application state is reconstructed.
-
-Code that must remain:
-- The dedicated whole-/half-blood niece/nephew parent fields.
-- ParentDieBefore → CoApplicantParentAdoptedIn.
-- CoApplicantParentAdoptedIn → parent adoption place or parent adopted out.
-- Eligible parent paths → CoApplicantName.
-- Parent-specific Check Your Answers content.
-- Relationship-change clearing for both parent-specific fields and niece/nephew-own fields.
-- The later `isParentJointApplication → CoApplicantAdoptedDeceasedIn` route.
-
-Code already available for reuse:
-- app/steps/ui/executors/adoptedin/index.js
-- app/steps/ui/executors/adoptionplace/index.js
-- app/steps/ui/executors/adoptedout/index.js
-- The CoApplicantName `isChildJointApplication → CoApplicantAdoptedIn` journey definition.
-
-Do not create replacement adoption pages. Restore access to the existing pages and retain separate field families:
-
-Parent fields:
-- wholeNieceOrNephewParentDieBeforeDeceased
-- wholeNieceOrNephewParentAdoptedIn
-- wholeNieceOrNephewParentAdoptionInEnglandOrWales
-- wholeNieceOrNephewParentAdoptedOut
-- halfNieceOrNephewParentDieBeforeDeceased
-- halfNieceOrNephewParentAdoptedIn
-- halfNieceOrNephewParentAdoptionInEnglandOrWales
-- halfNieceOrNephewParentAdoptedOut
-
-Niece/nephew-own fields:
-- wholeBloodNieceOrNephewAdoptedIn
-- wholeBloodNieceOrNephewAdoptionInEnglandOrWales
-- wholeBloodNieceOrNephewAdoptedOut
-- halfBloodNieceOrNephewAdoptedIn
-- halfBloodNieceOrNephewAdoptionInEnglandOrWales
-- halfBloodNieceOrNephewAdoptedOut
-
-Verification boundary:
-The regression is confirmed through Git history and static route inspection. After implementation, run the focused existing-suite tests and manually execute both whole- and half-blood browser journeys, including eligible routes, both own-adoption stop routes, Check Your Answers, and save/resume.
-```
+- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:31,42` (`halfBloodSiblingDiedBeforeDeceased` and `wholeBloodSiblingDiedBeforeDeceased`): Remove their niece/nephew Caseworker display conditions when the dedicated parent-death fields become visible, so XUI does not show two parent-death questions for one co-applicant.
