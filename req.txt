@@ -4,8 +4,6 @@
 
 #### Mandatory
 
-- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:32-35` (`ApplicantFamilyDetails` half-blood niece/nephew parent fields): Replace `relationshipToDeceased="NeverShowThisField"` with `relationshipToDeceased="halfBloodNieceOrNephew"` for the parent-death and parent-adopted-in fields; add `AND halfNieceOrNephewParentAdoptedIn="Yes"` to the adoption-location field and `AND halfNieceOrNephewParentAdoptedIn="No"` to the adopted-out field so Caseworker XUI displays only the applicable saved answers.
+- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:31` (`ApplicantFamilyDetails.halfBloodSiblingDiedBeforeDeceased`): Restore a `FieldShowCondition` of `relationshipToDeceased="halfBloodSibling"` so this sibling-journey field does not appear for half-blood or whole-blood niece/nephew relationships.
 
-- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:43-46` (`ApplicantFamilyDetails` whole-blood niece/nephew parent fields): Replace `relationshipToDeceased="NeverShowThisField"` with `relationshipToDeceased="wholeBloodNieceOrNephew"` for the parent-death and parent-adopted-in fields; add `AND wholeNieceOrNephewParentAdoptedIn="Yes"` to the adoption-location field and `AND wholeNieceOrNephewParentAdoptedIn="No"` to the adopted-out field so Caseworker XUI displays only the applicable saved answers.
-
-- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:31,42` (`halfBloodSiblingDiedBeforeDeceased` and `wholeBloodSiblingDiedBeforeDeceased`): Remove their niece/nephew Caseworker display conditions when the dedicated parent-death fields become visible, so XUI does not show two parent-death questions for one co-applicant.
+- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:42` (`ApplicantFamilyDetails.wholeBloodSiblingDiedBeforeDeceased`): Restore a `FieldShowCondition` of `relationshipToDeceased="wholeBloodSibling"` so this sibling-journey field does not appear for half-blood or whole-blood niece/nephew relationships.
