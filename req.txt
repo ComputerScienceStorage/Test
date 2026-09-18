@@ -1,57 +1,9 @@
-## Probate Frontend
-
-### Implementation changes
-
-#### Mandatory
-
-- `app/wrappers/Executors.js:200-211` (`hasStopCondition`): Delete `wholeBloodSiblingDiedBeforeDeceased` and `halfBloodSiblingDiedBeforeDeceased` from `optionNoFields`; the intestacy niece/nephew journeys use the dedicated `wholeNieceOrNephewParentDieBeforeDeceased` and `halfNieceOrNephewParentDieBeforeDeceased` fields.
-
-### Testing changes
-
-#### Mandatory
-
-- `test/unit/executors/testParentDieBeforeDeceased.js:176-213` (`CoApplicantParentDieBefore handlePost`): Rename the half- and whole-blood test descriptions to reference the dedicated `*NieceOrNephewParentDieBeforeDeceased` fields; retain their existing assertions, which already prove the correct citizen journey output.
-
-## Probate Commons
-
-### Implementation changes
-
-#### Mandatory
-
-- `src/main/java/uk/gov/hmcts/reform/probate/model/cases/ApplicantFamilyDetails.java:77-95,121-139` (`ApplicantFamilyDetails`): Delete `wholeBloodSiblingDiedBeforeDeceased` and `halfBloodSiblingDiedBeforeDeceased`; retain the dedicated whole- and half-blood niece/nephew parent-death properties as the sole case-data fields.
-
-- `src/main/java/uk/gov/hmcts/reform/probate/model/forms/pa/Executor.java:179-205` (`Executor`): Delete `halfBloodSiblingDiedBeforeDeceased` and `wholeBloodSiblingDiedBeforeDeceased`; retain the matching dedicated niece/nephew-parent properties as the sole frontend form fields.
-
 ## Probate Back Office
 
-### Implementation changes
-
-#### Mandatory
-
-- `ccdImports/configFiles/CCD_Probate_Backoffice/ComplexTypes.json:31,42` (`ApplicantFamilyDetails`): Delete the `halfBloodSiblingDiedBeforeDeceased` and `wholeBloodSiblingDiedBeforeDeceased` CCD rows; retain `halfNieceOrNephewParentDieBeforeDeceased` and `wholeNieceOrNephewParentDieBeforeDeceased` as the only Caseworker XUI parent-death questions. [PR #4241](https://github.com/hmcts/probate-back-office/pull/4241)
-
-- `src/main/java/uk/gov/hmcts/probate/model/ccd/raw/ApplicantFamilyDetails.java:23-35` (`ApplicantFamilyDetails`): Delete the old whole- and half-blood sibling parent-death properties so Back Office cannot read or write duplicate parent-death keys.
-
-- `src/main/java/uk/gov/hmcts/probate/service/solicitorexecutor/ExecutorListMapperService.java:234-248` (`WHOLE_BLOOD_NIECE_OR_NEPHEW`): Replace `.wholeBloodSiblingDiedBeforeDeceased(solsApplicantFamilyDetails.getWholeNieceOrNephewParentDieBeforeDeceased())` with `.wholeNieceOrNephewParentDieBeforeDeceased(solsApplicantFamilyDetails.getWholeNieceOrNephewParentDieBeforeDeceased())`.
-
-- `src/main/java/uk/gov/hmcts/probate/service/solicitorexecutor/ExecutorListMapperService.java:256-270` (`HALF_BLOOD_NIECE_OR_NEPHEW`): Replace `.halfBloodSiblingDiedBeforeDeceased(solsApplicantFamilyDetails.getHalfNieceOrNephewParentDieBeforeDeceased())` with `.halfNieceOrNephewParentDieBeforeDeceased(solsApplicantFamilyDetails.getHalfNieceOrNephewParentDieBeforeDeceased())`.
-
-- `build.gradle:189` (`probateCommonsVersion`): Update the Commons dependency to the released version containing the removal of the two sibling parent-death properties.
-
 ### Testing changes
 
 #### Mandatory
 
-- `src/test/java/uk/gov/hmcts/probate/service/solicitorexecutor/ExecutorListMapperServiceTest.java:369-412` (`mapsWholeBloodNieceOrNephewFamilyDetails`): Replace the assertion for `getWholeBloodSiblingDiedBeforeDeceased()` with `getWholeNieceOrNephewParentDieBeforeDeceased()`.
+- `src/test/java/uk/gov/hmcts/probate/transformer/CallbackResponseTransformerTest.java:5081-5273` (`sibling-field clearing tests`): Restore each changed `wholeBloodSiblingsDiedBeforeDeceased` and `halfBloodSiblingsDiedBeforeDeceased` fixture value from `YES` to `"YesSome"`; these plural case-level fields use `predeceasedFixedList`, whose valid values are `YesSome`, `YesAll`, and `No`.
 
-- `src/test/java/uk/gov/hmcts/probate/service/solicitorexecutor/ExecutorListMapperServiceTest:after mapsWholeBloodNieceOrNephewFamilyDetails` (`half-blood niece/nephew mapper test`): Add the equivalent half-blood mapping test; assert that the solicitor-entered value is stored in `getHalfNieceOrNephewParentDieBeforeDeceased()`.
-
-## Probate Orchestrator Service
-
-### Implementation changes
-
-#### Mandatory
-
-- `src/main/java/uk/gov/hmcts/probate/core/service/mapper/ExecutorApplyingMapper.java:91-94,115-118,184-187,205-208` (`toExecutorApplying` and `fromExecutorApplying`): Delete the forward and reverse mappings for `wholeBloodSiblingDiedBeforeDeceased` and `halfBloodSiblingDiedBeforeDeceased`; retain the dedicated niece/nephew-parent mappings as the only parent-death mapping contract.
-
-- `build.gradle:178` (`probateCommonsVersion`): Update the Commons dependency to the released version containing the removal of the two sibling parent-death properties.
+- `src/test/java/uk/gov/hmcts/probate/transformer/CCDDataTransformerTest.java:229-258` (`CCDDataTransformer.transform`): Add a focused assertion that `Applicant.anyLivingWholeBloodSiblings` receives `CaseData.anyLivingWholeBloodSiblings`, with a different value supplied for `wholeBloodSiblingsDiedBeforeDeceased`; this protects the corrected mapping in [PR #4241](https://github.com/hmcts/probate-back-office/pull/4241/changes).
